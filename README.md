@@ -1,22 +1,3 @@
-<h1 align="center"> ✨GLARE: Agentic Reasoning for</br> Legal Judgment Prediction</a></h1>
-
-
-<p align="center">
-  <br>
-  <a href="https://scholar.google.com/citations?user=CF_NOtoAAAAJ&hl=en" target="_blank">Xinyu Yang</a>,&nbsp;
-  <a href="https://scholar.google.com/citations?user=nqp_-AsAAAAJ&hl=en" target="_blank">Chenlong Deng</a>,&nbsp;
-  <a href="http://playbigdata.ruc.edu.cn/dou/" target="_blank">Zhicheng Dou</a>&nbsp;<sup>&#x2709;</sup>;
-  <br>
-</p>
-
-<p align="center">
-  Gaoling School of Artificial Intelligence, Renmin University of China.
-  <br>
-  <sup>&#x2709;</sup> Corresponding Author
-</p>
-
-<h5 align="center"> If you like our project, please give us a star ⭐ on GitHub for the latest update.</h5>
-
 ## 💡 Overview
 
 We identify that existing large language models (LLMS) have significant problems of insufficient reasoning due to a lack of legal knowledge. Effective legal analysis requires long-tail legal knowledge, such as determining the applicability of specific statutes. In some cases, this knowledge is even absent from official legal texts. When such information is missing, models struggle to produce complete and trustworthy reasoning chains as shown in the following figure. These observations highlight the need for **domain-specific knowledge augmentation mechanisms** that can dynamically supply essential information during the reasoning process.
