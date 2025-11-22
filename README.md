@@ -20,7 +20,7 @@ To address the knowledge gaps in legal reasoning, we propose GLARE (*A**G**entic
 ### Environment Setup
 ```bash
 # Create conda environment
-conda create -n galre python=3.9
+conda create -n glare python=3.9
 conda activate glare
 
 # Install requirements
