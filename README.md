@@ -10,7 +10,7 @@ We propose GLARE (*A**G**entic **L**eg**A**l **R**easoning Fram**E**work*), an a
 - **Legal Search-Augmented Reasoning**: Identifies remaining ambiguities and retrieves specific legal rules when needed to resolve competing charges. We guide the model to focus its search on differences between similar charges and details of how specific laws apply, rather than general case facts.  
   
 <p align="center">
-  <img src="figures/pipeline2.jpg" width="95%" />
+  <img src="figures/pipeline_new.jpg" width="95%" />
 </p>
 
 ## 🔧 Installation
