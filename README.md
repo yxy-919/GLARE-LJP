@@ -1,3 +1,22 @@
+<h1 align="center"> ✨GLARE: Agentic Reasoning for</br> Legal Judgment Prediction</a></h1>
+
+
+<p align="center">
+  <br>
+  <a href="https://scholar.google.com/citations?user=CF_NOtoAAAAJ&hl=en" target="_blank">Xinyu Yang</a>,&nbsp;
+  <a href="https://scholar.google.com/citations?user=nqp_-AsAAAAJ&hl=en" target="_blank">Chenlong Deng</a>,&nbsp;
+  <a href="http://playbigdata.ruc.edu.cn/dou/" target="_blank">Zhicheng Dou</a>&nbsp;<sup>&#x2709;</sup>;
+  <br>
+</p>
+
+<p align="center">
+  Gaoling School of Artificial Intelligence, Renmin University of China.
+  <br>
+  <sup>&#x2709;</sup> Corresponding Author
+</p>
+
+<h5 align="center"> If you like our project, please give us a star ⭐ on GitHub for the latest update.</h5>
+
 ## 💡 Overview
 
 Although Large Language Models (LLMs) have achieved remarkable progress in general reasoning, they struggle with tasks that require fine-grained distinctions between similar charges. These models often select plausible charges directly without discriminating among closely related alternatives. In this paper, we introduce GLARE, an agentic legal reasoning framework that enables models to actively retrieve and apply external knowledge during decision-making. Unlike static prediction, GLARE simulates comparative reasoning by dynamically expanding the decision space to include confusing candidates, then retrieving exclusionary logic from precedents and statutes to identify the correct judgment.
