@@ -499,7 +499,7 @@ async def main_async():
         res["caseID"] = data[i]["caseID"]
         res["predict"] = f"{response}"
         res_list.append(res)
-    with open(os.path.join(output_dir, "output"), "a+", encoding="utf-8") as f:
+    with open(os.path.join(output_dir, "predict_result"), "a+", encoding="utf-8") as f:
         for res in res_list:
             line = json.dumps(res, ensure_ascii=False)
             f.write(line + "\n")
