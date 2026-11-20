@@ -1,63 +1,3 @@
-def get_naive_rag_prompt1(fact, criminal, precedents, precedent_database):
-    examples = precedents
-    case_list = precedent_database
-    texts = []
-    for caseid in examples:
-        case = case_list[caseid-1]
-        cur_article_label = case["meta"]["relevant_articles"][0]
-        cur_charge_label = case["meta"]["accusation"][0]
-        text = "本案的相关法条是：" + f"第{cur_article_label}条\n" + "本案的被告人罪名是：" + f"{cur_charge_label}\n"
-        texts.append(text)
-    examples = "\n".join(texts)
-    return f"你要做的任务是相关法条预测和罪名预测，用<>括起来的是本案事实，用---括起来的是与本案内容类似的5个案件以及相应的法条和罪名。请一步一步地思考，根据你自己的知识，并参考5个案件的相关法条、罪名，分析本案的相关法条和罪名预测结果。重点关注用()括起来的罪犯的犯罪行为。\n"+f"<"+fact+f">"+f"\n---"+examples +f"---\n"+f"("+criminal +f")\n"
-    
-
-
-def get_naive_rag_prompt2(fact,criminal,predict):
-    return f"用<>括起来的是本案事实，用---括起来的是模型利用自己的知识对案例进行一步一步地分析得到的相关法条和罪名预测结果，请根据本案事实和预测结果，从中总结提取出最相关的一个法条和罪名,重点关注用()括起来的罪犯的犯罪行为。输出格式为：本案的相关法条是：第*条，本案的罪名是：*罪。\n"+f"<"+fact+f">"+f"\n---"+predict +f"---\n"+f"("+criminal +f")\n"
-
-def get_naive_rag_prompt3(fact, criminal, precedents, precedent_database,output):
-    examples = precedents
-    case_list = precedent_database
-    texts = []
-    for caseid in examples:
-        case = case_list[caseid-1]
-        cur_fact = case["fact"].replace(" ", "")
-        cur_article_label = case["meta"]["relevant_articles"][0]
-        cur_charge_label = case["meta"]["accusation"][0]
-        text = "本案的事实是：" + f"{cur_fact}\n" +"相关法条是：" + f"第{cur_article_label}条\n" + "被告人罪名是：" + f"{cur_charge_label}\n"
-        #text = "本案的相关法条是：" + f"第{cur_article_label}条\n" + "本案的被告人罪名是：" + f"{cur_charge_label}\n"
-        texts.append(text)
-    examples = "\n".join(texts)
-    if "没有相似法条" in output:
-    #if output == '没有相似法条！':
-        return f"你要做的任务是相关法条预测和罪名预测，用<>括起来的是本案事实，用---括起来的是与本案内容类似的5个案件以及相应的法条和罪名。请一步一步地思考，根据你自己的知识，并参考5个案件的相关法条、罪名，分析本案的相关法条和罪名预测结果。重点关注用()括起来的罪犯的犯罪行为。\n"+f"<"+fact+f">"+f"\n---"+examples +f"---\n"+f"("+criminal +f")\n"
-    else:
-        return f"你要做的任务是相关法条预测和罪名预测，用<>括起来的是本案事实，用---括起来的是与本案内容类似的5个案件以及相应的法条和罪名，用[]括起来的是对相似法条内容的理解和区分。请一步一步地思考，根据你自己的知识，并参考5个案件的相关法条、罪名，分析本案的相关法条和罪名预测结果。重点关注用()括起来的罪犯的犯罪行为。\n"+f"<"+fact+f">"+f"\n---"+examples +f"---\n"+f"["+output+f"]\n"+f"("+criminal +f")\n"
-
-def get_search_o1_instruction(MAX_SEARCH_LIMIT):
-    return (
-        "你是一名推理助手，具有进行网络搜索的能力，你能够准确进行法律判决预测。你有特殊工具：\n\n"
-        "- 进行搜索：写入 <|begin_search_query|> 你的查询内容 <|end_search_query|>。\n"
-        "然后，系统将搜索并分析相关的网页，并以 <|begin_search_result|> ...搜索结果... <|end_search_result|> 的格式将有用信息返回给你。\n"
-        f"可以多次重复搜索过程。搜索尝试的最大次数限制为 {MAX_SEARCH_LIMIT}。\n"
-        "一旦你获得了所需的信息，继续你的推理。\n\n"
-        "示例：\n"
-        "问题：\"如何区分刑法贷款诈骗罪和骗取贷款罪\"\n"
-        "Assistant思考步骤：\n"
-        "- 我需要找出贷款诈骗罪和骗取贷款罪的主要区别。\n\n"
-        "Assistant：\n"
-        "<|begin_search_query|>区分贷款诈骗罪和骗取贷款罪<|end_search_query|>\n\n"
-        "(系统返回搜索结果)\n\n"
-        "Assistant：\n"
-        "<|begin_search_result|> ...搜索结果... <|end_search_result|>\n\n"
-        "现在Assistant已经有足够的信息，可以继续推理。\n\n"
-        "注意：\n"
-        "- 使用 <|begin_search_query|> 请求网络搜索，并以 <|end_search_query|> 结束。\n"
-        "- 当完成信息检索后，继续你的推理。\n\n" 
-    ) 
-
-
 def get_instruction_add_reasoning_chain(MAX_SEARCH_LIMIT):
     return (
         "你是一名推理助手，具有调用外部工具的能力。你有特殊工具：\n"
@@ -84,7 +24,6 @@ def get_instruction_add_reasoning_chain(MAX_SEARCH_LIMIT):
         "- 使用 <|begin_search_query|> 请求网络搜索，并以 <|end_search_query|> 结束。\n"
         "- 当完成信息检索后，继续你的推理。\n\n" 
     )
-
 
 def get_search_agent_user_prompt(fact, criminal, model_name):
     if model_name == 'qwq':
@@ -121,24 +60,6 @@ def get_search_agent_user_prompt(fact, criminal, model_name):
             f"被告人：{criminal}\n"
         )
     return user_prompt
-
-def get_search_o1_user_prompt(fact, criminal, model_name):
-    if model_name == 'qwq':
-        user_prompt = (
-            "你要做的任务是对法律案件进行相关法条预测和罪名预测。\n"
-            "给定一段案情描述，请利用你的法律知识和外部知识预测本案的相关法条和罪名，只需得到一个最相关的法条和罪名。当遇到多个候选罪名，进行网络搜索得到对罪名的区分理解，从而选出最适合本案的罪名。\n"
-            f"案情描述：{fact}\n"
-            f"被告人：{criminal}\n"
-        )
-    else:
-        user_prompt = (
-            "你要做的任务是对法律案件进行相关法条预测和罪名预测。\n"
-            "给定一段案情描述，请利用你的法律知识和外部知识一步一步地思考，预测本案的相关法条和罪名，只需得到一个最相关的法条和罪名。当遇到多个候选罪名，进行网络搜索得到对罪名的区分理解，从而选出最适合本案的罪名。\n"
-            f"案情描述：{fact}\n"
-            f"被告人：{criminal}\n"
-        )
-    return user_prompt
-
 
 def web_search_summarize_instruction(search_query, document):
     return f"""**任务说明**
@@ -183,13 +104,4 @@ def web_search_summarize_instruction(search_query, document):
         {document}
 
         现在你应该开始分析网页内容，并根据当前的搜索问题“{search_query}”提取总结有用的信息。请遵循上述步骤进行推理，并确保输出格式正确。
-        """ 
-
-def summarize_prompt(predict):
-    #return f"用<>括起来的是本案事实，用---括起来的是模型利用自己的知识对案例进行一步一步地分析得到的相关法条和罪名预测结果，请根据本案事实和预测结果，从中总结提取出最相关的一个法条和罪名,重点关注用()括起来的罪犯的犯罪行为。输出格式为：本案的相关法条是：第*条，本案的罪名是：*罪。请严格按照该输出格式生成结果。\n"+f"<"+fact+f">"+f"\n---"+predict +f"---\n"+f"("+criminals +f")\n"
-    return (
-        "你是一个擅长提取结论并进行格式化输出的专家。"
-        "给定一段对案件相关法条和罪名的预测内容，理解该内容，从中总结提取出一个最相关的法条和罪名。"
-        "把你的最终答案放在方括号【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。"
-        f"预测内容：{predict}"
-    )
+        """
