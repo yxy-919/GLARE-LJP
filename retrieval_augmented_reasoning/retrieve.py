@@ -1,4 +1,5 @@
 import json
+import os
 import numpy as np
 import faiss 
 from transformers import AutoModel, AutoTokenizer
@@ -78,16 +79,13 @@ def retrieve_precedents_for_cases(cail_data, index, precedent_database_ids):
 
     return all_selected_cases
 
-# print("开始检索！")
-# # 执行类案检索并保存结果
-# faiss_index, precedent_database_ids = encode_precedent_cases_in_batches(precedent_database)  # 按批次编码类案并获得索引
-# print("索引构建完成")
-# index_file = "./output/rag/index.faiss"
-# save_faiss_index(faiss_index, index_file)
-faiss_index = load_faiss_index("./output/rag/index.faiss")
-precedent_database_ids = []
-for case in precedent_database:
-    precedent_database_ids.append(case['caseID'])
+print("开始检索！")
+os.makedirs("./output/rag", exist_ok=True)
+# Build the index from the current precedent database before retrieval.
+faiss_index, precedent_database_ids = encode_precedent_cases_in_batches(precedent_database)
+print("索引构建完成")
+index_file = "./output/rag/index.faiss"
+save_faiss_index(faiss_index, index_file)
 retrieved_precedents = retrieve_precedents_for_cases(cail_data, faiss_index, precedent_database_ids)
 
 # 将结果保存为json文件

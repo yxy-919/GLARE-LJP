@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument(
         '--precedent_database_path',
         type=str,
-        default="./train.json",
+        default="./data/precedent_database.jsonl",
         help="Path of precedent database."
     )
     # Model configuration
@@ -242,7 +242,7 @@ def main():
         print("to run data count: ", len(data))
         # data = data[:1]
         # load precedents (全部内容)
-        with open('./rag/retrieved_precedents_5.json', 'r', encoding='utf-8') as f:
+        with open('./output/rag/retrieved_precedents_5.json', 'r', encoding='utf-8') as f:
             retrieved_precedents = json.load(f)
         # retrieved_precedents = retrieved_precedents[:1]
         get_response(data, retrieved_precedents)
