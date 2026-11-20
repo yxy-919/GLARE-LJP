@@ -34,6 +34,12 @@ pip install -r requirements.txt
 - **multi-defendant scenario:**  
   [CMDL dataset](https://github.com/littlebowlnju/CMDL)
 
+For test-set construction, we randomly sample cases uniformly across charge
+categories to obtain balanced evaluation sets, following Section 4.1 of the
+[paper](https://aclanthology.org/2026.acl-long.600/). The resulting test sets contain
+**1,000 cases for CAIL2018** (single-defendant) and **834 cases for CMDL**
+(multi-defendant), as reported in Table 1.
+
 ### Model Inference
 
 You can run different inference modes using the provided scripts. Below are examples of how to execute each mode:
