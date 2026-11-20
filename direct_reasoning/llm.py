@@ -98,12 +98,18 @@ def main():
 
     llm = LLM(model=model_path,enforce_eager=True,trust_remote_code=True,gpu_memory_utilization=0.9,dtype=torch.bfloat16,tensor_parallel_size=torch.cuda.device_count())
 
-    def generate_prompt(fact,criminal):
+    def generate_prompt(fact, criminal, is_multi_defendant=True):
+        if is_multi_defendant:
+            prediction_instruction = (
+                f"为{criminal}中每个罪犯预测相关法条和罪名。\n"
+                "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            )
+        else:
+            prediction_instruction = f"得到和本案最相关的一个法条和罪名预测结果。只关注{criminal}的犯罪行为，把你的最终答案放在方括号【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。"
         prompt = (
             "你要做的任务是相关法条预测和罪名预测。\n"
             f"本案事实：\n{fact}\n"
-            f"请分析当前案件，根据你自己的知识，为{criminal}中每个罪犯预测相关法条和罪名。\n"
-            "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            f"请分析当前案件，根据你自己的知识，{prediction_instruction}"
         )
         return prompt
 
@@ -128,9 +134,13 @@ def main():
         for i in tqdm(range(len(data)), desc="pre-process prompt"):
             case = data[i]
             fact = case["fact"].replace(" ", "") # raw fact
-            criminal = case["defendants"]
-            criminal = ",".join(criminal)
-            prompt = generate_prompt(fact,criminal)
+            is_multi_defendant = "defendants" in case
+            if is_multi_defendant:
+                criminal = case["defendants"]
+                criminal = ",".join(criminal)
+            else:
+                criminal = case["meta"]["criminals"][0]
+            prompt = generate_prompt(fact, criminal, is_multi_defendant)
 
             obj = {}
             obj["prompt"] = prompt

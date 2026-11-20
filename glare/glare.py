@@ -439,9 +439,14 @@ async def main_async():
     input_list = []
     for item in data:
         fact = item["fact"]
-        criminal = item["defendants"]
+        is_multi_defendant = "defendants" in item
+        if is_multi_defendant:
+            criminal = item["defendants"]
+            criminal = ",".join(criminal)
+        else:
+            criminal = item["meta"]["criminals"][0]
         instruction = get_instruction_add_reasoning_chain(args.max_search_limit)
-        user_prompt = get_search_agent_user_prompt(fact,criminal,args.model_name)
+        user_prompt = get_search_agent_user_prompt(fact, criminal, args.model_name, is_multi_defendant)
         prompt = instruction + user_prompt
         input_list.append(prompt)
 

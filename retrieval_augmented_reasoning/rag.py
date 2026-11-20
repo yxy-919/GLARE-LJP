@@ -113,7 +113,7 @@ def main():
             line = line.strip()
             case_list.append(json.loads(line))
     
-    def retrieved_label_option_fewshot(fact, criminals, in_context_content):
+    def retrieved_label_option_fewshot(fact, criminals, in_context_content, is_multi_defendant=True):
         
         #生成few-shot示例
         examples = in_context_content
@@ -122,37 +122,49 @@ def main():
             case = case_list[caseid-1]
             #对examples中的case提取出fact和三个label，并组合为text
             cur_fact = case["fact"].replace(" ", "")
-            defendants = case["defendants"]
-            # 每个罪犯
-            all_str = ""
-            for idx,item in enumerate(case["outcomes"]):
-                defendant = defendants[idx]
-                each_defendant = "罪犯" + defendant
-                # 多罪处理：一个被告可能有多个 judgment
-                charge_list = []
-                article_list = []
-                for judgment in item['judgment']:
-                    charge = judgment['standard_accusation'].strip()
-                    articles = judgment['article']
-                    charge_list.append(charge)
-                    article_list.extend(articles)
-                for article in article_list:
-                    article = "第" + article + "条"
-                charge_str = ",".join(charge_list)
-                article_str = ",".join(article_list)
-                each_defendant += ": 法条是: " + article_str + "；罪名是: " + charge_str + "。"
-                all_str += each_defendant
-                # print(all_str)
+            if "defendants" in case:
+                defendants = case["defendants"]
+                # 每个罪犯
+                all_str = ""
+                for idx,item in enumerate(case["outcomes"]):
+                    defendant = defendants[idx]
+                    each_defendant = "罪犯" + defendant
+                    # 多罪处理：一个被告可能有多个 judgment
+                    charge_list = []
+                    article_list = []
+                    for judgment in item['judgment']:
+                        charge = judgment['standard_accusation'].strip()
+                        articles = judgment['article']
+                        charge_list.append(charge)
+                        article_list.extend(articles)
+                    for article in article_list:
+                        article = "第" + article + "条"
+                    charge_str = ",".join(charge_list)
+                    article_str = ",".join(article_list)
+                    each_defendant += ": 法条是: " + article_str + "；罪名是: " + charge_str + "。"
+                    all_str += each_defendant
+                    # print(all_str)
+
+            else:
+                article = case["meta"]["relevant_articles"][0]
+                charge = case["meta"]["accusation"][0]
+                all_str = f"本案的相关法条是：第{article}条，本案的罪名是：{charge}。"
 
             text = "本案的事实是：" + f"{cur_fact}\n" + all_str + "\n"
             texts.append(text)
         examples = "\n\n".join(texts)
+        if is_multi_defendant:
+            prediction_instruction = (
+                f"为{criminals}中每个罪犯预测相关法条和罪名。\n"
+                "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            )
+        else:
+            prediction_instruction = f"得到和本案最相关的一个法条和罪名预测结果。只关注{criminals}的犯罪行为，把你的最终答案放在方括号【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。"
         prompt = (
             "你要做的任务是相关法条预测和罪名预测。\n"
             f"本案事实：\n{fact}\n"
             f"与本案案情类似的5个案件以及各罪犯相应的法条和罪名：\n{examples}\n"
-            f"请根据你自己的知识，并分析当前案件与类案的相似性，为{criminals}中每个罪犯预测相关法条和罪名。\n"
-            "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            f"请根据你自己的知识，并分析当前案件与类案的相似性，{prediction_instruction}"
         )
         return prompt
 
@@ -182,9 +194,13 @@ def main():
             #单独处理每个fact
             case = data[i]
             fact = case["fact"].replace(" ", "") # raw fact
-            criminal = case["defendants"]
-            criminal = ",".join(criminal)
-            prompt = retrieved_label_option_fewshot(fact, criminal, retrieved_precedents[i])
+            is_multi_defendant = "defendants" in case
+            if is_multi_defendant:
+                criminal = case["defendants"]
+                criminal = ",".join(criminal)
+            else:
+                criminal = case["meta"]["criminals"][0]
+            prompt = retrieved_label_option_fewshot(fact, criminal, retrieved_precedents[i], is_multi_defendant)
             #prompt = truncate_prompt(prompt, tokenizer, 8192)
 
             obj = {}

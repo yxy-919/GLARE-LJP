@@ -25,13 +25,19 @@ def get_instruction_add_reasoning_chain(MAX_SEARCH_LIMIT):
         "- 当完成信息检索后，继续你的推理。\n\n" 
     )
 
-def get_search_agent_user_prompt(fact, criminal, model_name):
+def get_search_agent_user_prompt(fact, criminal, model_name, is_multi_defendant=True):
+    if is_multi_defendant:
+        prediction_instruction = (
+            f"为{criminal}中每个罪犯预测相关法条和罪名。\n"
+            "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+        )
+    else:
+        prediction_instruction = f"得到和本案最相关的一个法条和罪名预测结果。只关注{criminal}的犯罪行为，把你的最终答案放在方括号【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。\n"
     if model_name == 'qwq':
         user_prompt = (
             "你要做的任务是相关法条预测和罪名预测。\n"
             f"本案事实：\n{fact}\n"
-            f"利用你的法律知识和外部知识，为{criminal}中每个罪犯预测相关法条和罪名。\n"
-            "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            f"利用你的法律知识和外部知识，{prediction_instruction}"
             "你可以按照以下步骤进行：\n"
             "1. 仔细分析给定案件的案情描述。\n"
             "2. 得到所有可能的预测结果。\n"
@@ -45,8 +51,7 @@ def get_search_agent_user_prompt(fact, criminal, model_name):
         user_prompt = (
             "你要做的任务是相关法条预测和罪名预测。\n"
             f"本案事实：\n{fact}\n"
-            f"利用你的法律知识和外部知识一步一步地思考，为{criminal}中每个罪犯预测相关法条和罪名。\n"
-            "输出格式为:【罪犯1:法条:……,罪名:……】【罪犯2:……】……"
+            f"利用你的法律知识和外部知识一步一步地思考，{prediction_instruction}"
             "你可以按照以下步骤进行：\n"
             "1. 仔细分析给定案件的案情描述。\n"
             "2. 得到所有可能的预测结果。\n"
