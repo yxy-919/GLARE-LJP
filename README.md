@@ -105,7 +105,7 @@ python metrics/cal_single_defendant_charge_metrics.py
 
 - For multi-defendant dataset:
 ```bash
-python multi_defendant_metrics.py
+python metrics/multi_defendant_metrics.py
 ```
 
 ## 📄 License
