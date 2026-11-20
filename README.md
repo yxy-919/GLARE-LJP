@@ -97,6 +97,29 @@ Qwen2.5-72B-Instruct (offline generator), BGE-M3 (charge expansion), SAILER_zh
 and GPU settings for your environment.
 
 ### Evaluation
+
+After obtaining reasoning results from any method (Direct Reasoning,
+Retrieval-augmented Reasoning, or GLARE), you can use
+`direct_reasoning/summarize.py` to further format the predictions before evaluation.
+It supports both single-defendant and multi-defendant cases.
+
+```bash
+python direct_reasoning/summarize.py \
+    --test_dataset_path "$TEST_DATASET_PATH" \
+    --method_name "$METHOD_NAME" \
+    --method_model "$METHOD_MODEL" \
+    --model_path "$MODEL_PATH"
+```
+
+Set `METHOD_NAME` to `llm`, `rag`, or `glare`, and `METHOD_MODEL` to the model
+identifier (`7b`, `qwq`, `32b`, or `72b`). The script reads
+`output/{method_name}/{method_model}/predict_result` and writes formatted predictions
+to `output/{method_name}/{method_model}/generated_result`. The current GLARE runner writes to
+`output/glare/qwq/output`; copy or rename this file to
+`output/glare/qwq/predict_result` before formatting with `--method_name glare
+--method_model qwq`.
+Configure the evaluation scripts to read the corresponding `generated_result` file.
+
 - For single-defendant dataset:
 ```bash
 python metrics/cal_single_defendant_article_metrics.py
