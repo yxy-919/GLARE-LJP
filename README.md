@@ -37,6 +37,10 @@ pip install -r requirements.txt
 CAIL2018 covers **202 charge categories**. We randomly sample cases uniformly
 across charge categories to construct a balanced test set of **1,000 cases**,
 covering **190 charge categories**.
+Test-set selections may vary across studies. Here, we aim for balanced sampling
+across all charge categories to assess the framework's adaptability to charges
+of varying difficulty. For reproduction, you can randomly sample a test set
+and evaluate all compared methods on the same sampled cases.
 
 ### Model Inference
 
