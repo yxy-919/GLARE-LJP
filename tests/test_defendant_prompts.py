@@ -27,6 +27,17 @@ class DefendantPromptTests(unittest.TestCase):
         self.assertEqual(prompt('案情', '张某', False), prefix + SINGLE)
         self.assertEqual(prompt('案情', '张某,李某', True), prefix + MULTI)
 
+    def test_summarize_single_and_multi(self):
+        prompt = function('direct_reasoning/summarize.py', 'generate_prompt')
+        single = prompt('原预测内容', '张某', False)
+        self.assertIn('只关注张某的犯罪行为', single)
+        self.assertIn('【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。', single)
+        self.assertNotIn('罪犯2', single)
+        self.assertTrue(single.endswith('预测内容：原预测内容'))
+        multi = prompt('原预测内容', '张某,李某', True)
+        self.assertIn('按照张某,李某的顺序输出', multi)
+        self.assertIn('【罪犯2:……】', multi)
+
     def test_rag_with_both_precedent_schemas(self):
         prompt = function('retrieval_augmented_reasoning/rag.py', 'retrieved_label_option_fewshot',
                           {'case_list': [SINGLE_CASE, MULTI_CASE]})
@@ -50,6 +61,7 @@ class DefendantPromptTests(unittest.TestCase):
     def test_case_field_selection_in_all_three_entrypoints(self):
         for path, container in [('direct_reasoning/llm.py', 'case'),
                                 ('retrieval_augmented_reasoning/rag.py', 'case'),
+                                ('direct_reasoning/summarize.py', 'case'),
                                 ('glare/glare.py', 'item')]:
             tree = ast.parse((ROOT / path).read_text())
             branch = next(n for n in ast.walk(tree) if isinstance(n, ast.If)

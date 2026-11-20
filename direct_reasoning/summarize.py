@@ -93,7 +93,7 @@ def main():
     repetition_penalty = args.repetition_penalty
     max_tokens = args.max_tokens
 
-    output_dir = f'./{method_name}/{method_model}' 
+    output_dir = f'./output/{method_name}/{method_model}'
     os.makedirs(output_dir, exist_ok=True)
 
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -108,18 +108,26 @@ def main():
     llm = LLM(model=model_path,enforce_eager=True,trust_remote_code=True,gpu_memory_utilization=0.9,dtype=torch.bfloat16,tensor_parallel_size=torch.cuda.device_count())
 
     #一条数据
-    def generate_prompt(predict,criminals):
+    def generate_prompt(predict, criminals, is_multi_defendant=True):
         # if "</think>" in predict:
         #     analysis_part = predict.split("</think>")[1].strip()
         # else:
         #     analysis_part = predict 
         #return f"用<>括起来的是本案事实，用---括起来的是模型利用自己的知识对案例进行一步一步地分析得到的相关法条和罪名预测结果，请根据本案事实和预测结果，从中总结提取出最相关的一个法条和罪名,重点关注用()括起来的罪犯的犯罪行为。输出格式为：本案的相关法条是：第*条，本案的罪名是：*罪。请严格按照该输出格式生成结果。\n"+f"<"+fact+f">"+f"\n---"+predict +f"---\n"+f"("+criminals +f")\n"
-        return (
-            "你是一个擅长提取结论并进行格式化输出的专家。"
-            f"给定一段对案件相关法条和罪名的预测内容，理解该内容，从中总结出各罪犯{criminals}的相关法条和罪名。"
-            f"按照{criminals}的顺序输出，输出格式为：【罪犯1:法条是:第*条，第*条，……；罪名是:*罪，*罪，……】【罪犯2:……】"
-            f"预测内容：{predict}"
-        )
+        if is_multi_defendant:
+            return (
+                "你是一个擅长提取结论并进行格式化输出的专家。"
+                f"给定一段对案件相关法条和罪名的预测内容，理解该内容，从中总结出各罪犯{criminals}的相关法条和罪名。"
+                f"按照{criminals}的顺序输出，输出格式为：【罪犯1:法条是:第*条，第*条，……；罪名是:*罪，*罪，……】【罪犯2:……】"
+                f"预测内容：{predict}"
+            )
+        else:
+            return (
+                "你是一个擅长提取结论并进行格式化输出的专家。"
+                "给定一段对案件相关法条和罪名的预测内容，理解该内容，从中总结提取出和本案最相关的一个法条和罪名。"
+                f"只关注{criminals}的犯罪行为，把你的最终答案放在方括号【】中，格式：本案的相关法条是：第*条，本案的罪名是：*罪。"
+                f"预测内容：{predict}"
+            )
 
     def qwen_response(text_list):
         message_list = []
@@ -143,9 +151,14 @@ def main():
         #data里面包括多个case
         for i in tqdm(range(len(fact_data)), desc="pre-process prompt"):
             predict = predict_data[i]["predict"].replace(" ", "")
-            criminal = fact_data[i]["defendants"]
-            criminal = ",".join(criminal)
-            prompt = generate_prompt(predict,criminal)
+            case = fact_data[i]
+            is_multi_defendant = "defendants" in case
+            if is_multi_defendant:
+                criminal = case["defendants"]
+                criminal = ",".join(criminal)
+            else:
+                criminal = case["meta"]["criminals"][0]
+            prompt = generate_prompt(predict, criminal, is_multi_defendant)
 
             obj = {}
             obj["prompt"] = prompt
