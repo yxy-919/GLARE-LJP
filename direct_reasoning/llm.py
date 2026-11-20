@@ -1,7 +1,6 @@
 import json
 from tqdm import tqdm
 import sys
-from mycode.utils import loader
 from modelscope import AutoTokenizer
 from vllm import LLM, SamplingParams
 import torch
