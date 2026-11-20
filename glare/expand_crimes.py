@@ -4,7 +4,6 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 import sys
-from mycode.utils import loader
 import re
 from modelscope import AutoTokenizer, AutoModel
 import torch
@@ -13,7 +12,10 @@ import pickle
 import os
 import random
 from collections import defaultdict
+from functools import lru_cache
+from precedents import case_charges, clean_charge
 
+@lru_cache(maxsize=4)
 def historical_co_occurrence(multiljp_file_path):
     """
     Build a co-occurrence dictionary of crimes based on multi-defendant cases.
@@ -26,18 +28,17 @@ def historical_co_occurrence(multiljp_file_path):
               dictionary of co-occurring crimes with their frequencies.
               Format: {crime: {co_occurring_crime1: count1, co_occurring_crime2: count2, ...}}
     """
+    # 历史罪名共现关系可以利用 MultiLJP、CMDL 等多被告、多罪名数据集的训练集统计。
+    # Cache statistics so each online expansion does not rescan the entire corpus.
     crime_co_occurrence = defaultdict(lambda: defaultdict(int))
     
     with open(multiljp_file_path, 'r', encoding='utf-8') as f:
         for line in f:
+            if not line.strip():
+                continue
             case = json.loads(line.strip())
-            criminals_info = case.get("criminals_info", {})
-            
-            # Extract all unique crimes in the current case involving multiple defendants
-            crimes_in_case = set()
-            for criminal_data in criminals_info.values():
-                crimes_in_case.update(criminal_data.get("accusations", []))
-            
+            crimes_in_case = set(case_charges(case))
+
             # Update co-occurrence counts (skip single-crime cases)
             if len(crimes_in_case) >= 2:
                 crimes_list = list(crimes_in_case)
@@ -193,7 +194,12 @@ def are_crimes_in_same_sublist(crime1,crime2,crime_list):
             return True
     return False
 
-def expand_crimes(charges,bge_model,k):
+def expand_crimes(charges, bge_model, k, historical_cases_path="./data/precedent_database.jsonl"):
+    """Combine legal-structure neighbors and top-k historical co-occurring charges.
+
+    historical_cases_path must contain training cases only (no test cases).
+    """
+    charges = [clean_charge(charge) for charge in charges]
     with open('./glare/structure_expand/crime_encodings.npy','rb') as f:
         embeddings = np.load(f)
     with open('./glare/structure_expand/laws_structure_list_split_remove','r',encoding='utf-8') as f:
@@ -221,4 +227,7 @@ def expand_crimes(charges,bge_model,k):
         all_expanded_charges.extend(expanded_crimes)
         # print("同一章节罪名：",same_chapter[:k])
         # print("不同章节罪名：",different_chapter[:k])
-    return all_expanded_charges
+    all_expanded_charges.extend(
+        expand_historical_co_occurrence(historical_cases_path, charges, k)
+    )
+    return sorted(set(all_expanded_charges))

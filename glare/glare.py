@@ -8,6 +8,7 @@ import re
 import torch
 from prompts import get_instruction_add_reasoning_chain,web_search_summarize_instruction,get_search_agent_user_prompt
 from expand_crimes import expand_crimes
+from precedents import PrecedentRetriever
 from vllm import LLM, SamplingParams
 from typing import Optional
 from serper import serper_search,extract_relevant_info,fetch_page_content,extract_snippet_with_context
@@ -36,6 +37,11 @@ def parse_args():
         default="./test.json",
         help="Path of 1000 test data."
     )
+
+    parser.add_argument("--precedent_database_path", default="./data/precedent_database_with_reasoning.jsonl")
+    parser.add_argument("--historical_cases_path", default="./data/precedent_database.jsonl")
+    parser.add_argument("--retriever_model_path", default="./model/SAILER_zh")
+    parser.add_argument("--precedent_top_k", type=int, default=5)
 
     # Search agent configuration
     parser.add_argument(
@@ -264,7 +270,7 @@ async def process_single_sequence(
             seq['prompt'] = seq['prompt'].replace('</think>\n','')
             seq['output'] = seq['output'].replace('</think>\n','')
             crimes_to_expand = [c.strip() for c in crimes_to_expand.split(",")]
-            expanded_crimes = expand_crimes(crimes_to_expand,bge_model,args.top_k_expand)
+            expanded_crimes = expand_crimes(crimes_to_expand, bge_model, args.top_k_expand, args.historical_cases_path)
             expanded_crimes = list(set(expanded_crimes))
             expanded_crimes_str = ', '.join(expanded_crimes)
             # Add precedent crimes
@@ -425,13 +431,9 @@ async def main_async():
             data.append(case)
     # data = data[:2]
     
-    reasoning_chain_list = []
-    with open('./output/rag/reasoning_chain.json', 'r', encoding='utf-8') as f:
-        for line in f.readlines():
-            reasoning_chain = json.loads(line)
-            reasoning_chain_list.append(reasoning_chain)
-    # reasoning_chain_list = reasoning_chain_list[:2]
-
+    # Retrieve reasoning-augmented precedents by facts, never by test labels.
+    retriever = PrecedentRetriever(args.precedent_database_path, args.retriever_model_path)
+    reasoning_chain_list = [retriever.retrieve(item["fact"], args.precedent_top_k) for item in data]
 
     # ---------------------- Prepare Input ----------------------
     input_list = []
@@ -457,7 +459,7 @@ async def main_async():
     
     # Add reasoning chain to sequences
     for idx,seq in enumerate(active_sequences):
-        reasoning_chain = reasoning_chain_list[idx]["reasoning_chain"]
+        reasoning_chain = reasoning_chain_list[idx]
         #print(reasoning_chain)
         seq["reasoning_chain"] = reasoning_chain
 

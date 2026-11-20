@@ -1,7 +1,11 @@
 export CUDA_VISIBLE_DEVICES=2,3
 
 
-python ./glare/run_search_o1_add_reasoning_chain_api.py \
+python ./glare/glare.py \
+    --precedent_database_path ./data/precedent_database_with_reasoning.jsonl \
+    --historical_cases_path ./data/precedent_database.jsonl \
+    --retriever_model_path ./model/SAILER_zh \
+    --precedent_top_k 5 \
     --test_dataset_path ./data/CAIL/test.json \
     --max_search_limit 10 \
     --max_turn 10 \
