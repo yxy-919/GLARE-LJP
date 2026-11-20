@@ -39,7 +39,7 @@ def parse_args():
     )
 
     parser.add_argument("--precedent_database_path", default="./data/precedent_database_with_reasoning.jsonl")
-    parser.add_argument("--multiljp_file_path", default="./data/MultiLJP/train.jsonl")
+    parser.add_argument("--multiljp_file_path", required=True)
     parser.add_argument("--retriever_model_path", default="./model/SAILER_zh")
     parser.add_argument("--precedent_top_k", type=int, default=5)
 

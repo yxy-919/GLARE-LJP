@@ -194,7 +194,7 @@ def are_crimes_in_same_sublist(crime1,crime2,crime_list):
             return True
     return False
 
-def expand_crimes(charges, bge_model, k, multiljp_file_path="./data/MultiLJP/train.jsonl"):
+def expand_crimes(charges, bge_model, k, multiljp_file_path):
     """Combine legal-structure neighbors and top-k historical co-occurring charges.
 
     multiljp_file_path must contain training cases only (no test cases).

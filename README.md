@@ -54,7 +54,8 @@ bash retrieval_augmented_reasoning/run.sh
 # Build reasoning paths for ALL precedents, before retrieving any test cases.
 python glare/offline_reasoning.py \
     --precedent_database_path ./data/precedent_database.jsonl \
-    --output_path ./data/precedent_database_with_reasoning.jsonl
+    --output_path ./data/precedent_database_with_reasoning.jsonl \
+    --multiljp_file_path "$MULTILJP_FILE_PATH"
 vllm serve "model_path" --port 19001 --tensor-parallel-size 2 --gpu-memory-utilization 0.9 --dtype float16 --served-model-name qwq
 bash glare/run.sh
 ```
@@ -87,11 +88,9 @@ rebuilt on startup and is currently kept in memory.
 
 Charge expansion combines legal-structure neighbors with top-k historical
 co-occurrences. Historical statistics can use multi-defendant, multi-charge
-**training data**, such as MultiLJP or CMDL. By default, both offline generation
-and online inference use `data/MultiLJP/train.jsonl` for these statistics. This is
-a placeholder for the MultiLJP training set, separate from the precedent corpus.
-To use a separate corpus, pass `--multiljp_file_path /path/to/training.jsonl`
-to the offline script and set the same argument in `glare/run.sh`. Statistics are
+**training data**, such as MultiLJP or CMDL. `--multiljp_file_path` is required and has no default path.
+Set the `MULTILJP_FILE_PATH` environment variable to your actual training JSONL
+file before running the commands above; `glare/run.sh` uses the same variable. Statistics are
 cached in memory for the duration of the process. Required local models are
 Qwen2.5-72B-Instruct (offline generator), BGE-M3 (charge expansion), SAILER_zh
 (precedent retrieval), and the online model served by vLLM; adjust model paths

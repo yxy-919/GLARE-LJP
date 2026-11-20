@@ -1,9 +1,11 @@
 export CUDA_VISIBLE_DEVICES=2,3
 
+: "${MULTILJP_FILE_PATH:?Set MULTILJP_FILE_PATH to your MultiLJP training JSONL file}"
+
 
 python ./glare/glare.py \
     --precedent_database_path ./data/precedent_database_with_reasoning.jsonl \
-    --multiljp_file_path ./data/MultiLJP/train.jsonl \
+    --multiljp_file_path "$MULTILJP_FILE_PATH" \
     --retriever_model_path ./model/SAILER_zh \
     --precedent_top_k 5 \
     --test_dataset_path ./data/CAIL/test.json \

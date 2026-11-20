@@ -47,7 +47,7 @@ def parse_args():
     # precedent_database.jsonl 是虚拟路径，需要自行准备；不得包含评测集案件。
     parser.add_argument('--precedent_database_path', default='./data/precedent_database.jsonl')
     parser.add_argument('--output_path', default='./data/precedent_database_with_reasoning.jsonl')
-    parser.add_argument('--multiljp_file_path', default='./data/MultiLJP/train.jsonl',
+    parser.add_argument('--multiljp_file_path', required=True,
                         help='MultiLJP training JSONL for historical charge co-occurrence.')
     parser.add_argument('--model_path', default='./model/Qwen2.5-72B-Instruct')
     parser.add_argument('--bge_model_path', default='./model/BAAI_bge-m3')
