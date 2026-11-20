@@ -17,7 +17,7 @@ def load_json(file_path):
     return data_list
 
 cail_data_path = './data/CAIL/test.json'
-precedent_database_path = './data/CAIL/train.json'
+precedent_database_path = './data/precedent_database.jsonl'
 
 cail_data = load_json(cail_data_path)
 precedent_database = load_json(precedent_database_path)
