@@ -185,7 +185,7 @@ def bge_match(charge,bge_model,embeddings,crime_names):
 # print(bge_match('虚假诉讼',model,embeddings,crime_names))
 
 def extract_charges(charge_text):
-    match = re.search(r"罪名是:(.+?)】", charge_text)
+    match = re.search(r"罪名:(.+?)】", charge_text)
     if match:
         charge = match.group(1)
         if "，" in charge:
