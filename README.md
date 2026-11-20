@@ -64,9 +64,11 @@ bash glare/run.sh
 `data/precedent_database.jsonl` is a placeholder path: prepare a JSONL precedent
 corpus from the **training splits** of CAIL2018, CMDL, and collected China Judgments
 Online cases. Exclude evaluation cases and duplicates. Each record needs a unique
-`caseID`, `fact`, and gold judgments. Supported judgment schemas are unified
-`outcomes[].judgment[]` (`standard_accusation` or `accusation`, plus `article`),
-CAIL2018 `meta.accusation`, and MultiLJP `criminals_info.*.accusations`.
+`caseID`, `fact`, and gold judgments. For offline reasoning, normalize cases to the original unified schema:
+`defendants` and `outcomes[].judgment[]` with `standard_accusation` and `article`
+(a list of article-number strings). The original Chinese prompt and per-defendant
+judgment formatting are retained. Historical co-occurrence statistics additionally
+support CAIL2018 `meta.accusation` and MultiLJP `criminals_info.*.accusations`.
 For example (synthetic schema illustration):
 
 ```json
@@ -86,8 +88,9 @@ rebuilt on startup and is currently kept in memory.
 Charge expansion combines legal-structure neighbors with top-k historical
 co-occurrences. Historical statistics can use multi-defendant, multi-charge
 **training data**, such as MultiLJP or CMDL. By default, both offline generation
-and online inference use `data/precedent_database.jsonl` for these statistics.
-To use a separate corpus, pass `--historical_cases_path /path/to/training.jsonl`
+and online inference use `data/MultiLJP/train.jsonl` for these statistics. This is
+a placeholder for the MultiLJP training set, separate from the precedent corpus.
+To use a separate corpus, pass `--multiljp_file_path /path/to/training.jsonl`
 to the offline script and set the same argument in `glare/run.sh`. Statistics are
 cached in memory for the duration of the process. Required local models are
 Qwen2.5-72B-Instruct (offline generator), BGE-M3 (charge expansion), SAILER_zh

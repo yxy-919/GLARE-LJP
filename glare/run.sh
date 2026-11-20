@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=2,3
 
 python ./glare/glare.py \
     --precedent_database_path ./data/precedent_database_with_reasoning.jsonl \
-    --historical_cases_path ./data/precedent_database.jsonl \
+    --multiljp_file_path ./data/MultiLJP/train.jsonl \
     --retriever_model_path ./model/SAILER_zh \
     --precedent_top_k 5 \
     --test_dataset_path ./data/CAIL/test.json \

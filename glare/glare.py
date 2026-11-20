@@ -39,7 +39,7 @@ def parse_args():
     )
 
     parser.add_argument("--precedent_database_path", default="./data/precedent_database_with_reasoning.jsonl")
-    parser.add_argument("--historical_cases_path", default="./data/precedent_database.jsonl")
+    parser.add_argument("--multiljp_file_path", default="./data/MultiLJP/train.jsonl")
     parser.add_argument("--retriever_model_path", default="./model/SAILER_zh")
     parser.add_argument("--precedent_top_k", type=int, default=5)
 
@@ -270,7 +270,7 @@ async def process_single_sequence(
             seq['prompt'] = seq['prompt'].replace('</think>\n','')
             seq['output'] = seq['output'].replace('</think>\n','')
             crimes_to_expand = [c.strip() for c in crimes_to_expand.split(",")]
-            expanded_crimes = expand_crimes(crimes_to_expand, bge_model, args.top_k_expand, args.historical_cases_path)
+            expanded_crimes = expand_crimes(crimes_to_expand, bge_model, args.top_k_expand, args.multiljp_file_path)
             expanded_crimes = list(set(expanded_crimes))
             expanded_crimes_str = ', '.join(expanded_crimes)
             # Add precedent crimes

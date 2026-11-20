@@ -65,14 +65,32 @@ class PrecedentTests(unittest.TestCase):
         self.assertIn('fact-6\nchain-6', output)
         self.assertNotIn('chain-3', output)
 
+    def test_original_prompt_is_preserved(self):
+        case = dict(fact='案 情', defendants=['甲', '乙'], outcomes=[
+            {'judgment': [{'standard_accusation': ' 盗窃 ', 'article': ['264']},
+                          {'standard_accusation': '诈骗', 'article': ['266']}]},
+            {'judgment': [{'standard_accusation': '抢劫', 'article': ['263']}]},
+        ])
+        expected = (
+            '给定一段法律案件的案情描述以及正确的法条和罪名，并给出其他的罪名，分析选择正确罪名排除其他罪名的理由。\n'
+            '案情描述：\n案情\n'
+            '正确的法条和罪名：\n罪犯甲: 法条是: 264,266；罪名是: 盗窃,诈骗。'
+            '罪犯乙: 法条是: 263；罪名是: 抢劫。\n'
+            '其他的罪名：\n盗窃, 抢夺\n'
+        )
+        self.assertEqual(offline_reasoning.build_prompt(case, ['盗窃', '抢夺']), expected)
+        self.assertEqual(offline_reasoning.precedent_judgment(case)[1], ['盗窃', '诈骗', '抢劫'])
+
     def test_offline_generates_all_records_without_test_retrieval(self):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / 'precedents.jsonl'
             target = Path(folder) / 'enriched.jsonl'
-            records = [dict(caseID=f'case-{i}', fact=f'fact-{i}', meta={'accusation': ['盗窃']}) for i in range(7)]
+            records = [dict(caseID=f'case-{i}', fact=f'fact-{i}', defendants=['张某'],
+                            outcomes=[{'judgment': [{'standard_accusation': '盗窃', 'article': ['264']}]}])
+                       for i in range(7)]
             source.write_text(''.join(json.dumps(r) + '\n' for r in records))
             args = types.SimpleNamespace(precedent_database_path=str(source), output_path=str(target),
-                historical_cases_path=None, model_path='fake', bge_model_path='fake',
+                multiljp_file_path=str(source), model_path='fake', bge_model_path='fake',
                 tensor_parallel_size=1, batch_size=3, top_k_expand=3)
             class Tokenizer:
                 @classmethod
@@ -95,7 +113,7 @@ class PrecedentTests(unittest.TestCase):
             self.assertEqual([r['caseID'] for r in outputs], [r['caseID'] for r in records])
             for record, output in zip(records, outputs):
                 self.assertIn(record['fact'], output['reasoning_chain'])
-                self.assertEqual(record['meta'], output['meta'])
+                self.assertEqual(record['outcomes'], output['outcomes'])
             self.assertFalse(Path(str(target) + '.tmp').exists())
 
 

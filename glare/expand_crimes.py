@@ -194,10 +194,10 @@ def are_crimes_in_same_sublist(crime1,crime2,crime_list):
             return True
     return False
 
-def expand_crimes(charges, bge_model, k, historical_cases_path="./data/precedent_database.jsonl"):
+def expand_crimes(charges, bge_model, k, multiljp_file_path="./data/MultiLJP/train.jsonl"):
     """Combine legal-structure neighbors and top-k historical co-occurring charges.
 
-    historical_cases_path must contain training cases only (no test cases).
+    multiljp_file_path must contain training cases only (no test cases).
     """
     charges = [clean_charge(charge) for charge in charges]
     with open('./glare/structure_expand/crime_encodings.npy','rb') as f:
@@ -228,6 +228,6 @@ def expand_crimes(charges, bge_model, k, historical_cases_path="./data/precedent
         # print("同一章节罪名：",same_chapter[:k])
         # print("不同章节罪名：",different_chapter[:k])
     all_expanded_charges.extend(
-        expand_historical_co_occurrence(historical_cases_path, charges, k)
+        expand_historical_co_occurrence(multiljp_file_path, charges, k)
     )
     return sorted(set(all_expanded_charges))

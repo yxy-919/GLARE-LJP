@@ -2,18 +2,42 @@
 import argparse
 import json
 from pathlib import Path
-from precedents import case_charges, fact_text, load_cases
+from precedents import load_cases
 
 
-def build_prompt(case, alternatives):
+def precedent_judgment(case):
+    # Preserve the original per-defendant judgment formatting and charge collection.
+    defendants = case["defendants"]
+    all_str = ""
+    all_charge_list = []
+    for idx, item in enumerate(case["outcomes"]):
+        defendant = defendants[idx]
+        each_defendant = "罪犯" + defendant
+        charge_list = []
+        article_list = []
+        for judgment in item['judgment']:
+            charge = judgment['standard_accusation'].strip()
+            articles = judgment['article']
+            charge_list.append(charge)
+            article_list.extend(articles)
+        charge_str = ",".join(charge_list)
+        all_charge_list.extend(charge_list)
+        article_str = ",".join(article_list)
+        each_defendant += ": 法条是: " + article_str + "；罪名是: " + charge_str + "。"
+        all_str += each_defendant
+    return all_str, all_charge_list
+
+
+def build_prompt(case, expanded_crimes):
+    fact = case["fact"].replace(" ", "")
+    all_str, _ = precedent_judgment(case)
+    expanded_crimes_str = ', '.join(expanded_crimes)
+    # Keep the original offline reasoning prompt unchanged.
     return (
-        '给定一段法律案件的案情描述以及正确判决，并给出其他的罪名，'
-        '分析选择正确罪名排除其他罪名的理由。不得编造案情。\n'
-        f'案情描述：\n{fact_text(case["fact"])}\n'
-        f'正确的罪名：\n{", ".join(case_charges(case))}\n'
-        f'正确判决（保留被告人与罪名、法条的对应关系）：\n'
-        f'{json.dumps(case.get("outcomes") or case.get("meta") or case.get("criminals_info"), ensure_ascii=False)}\n'
-        f'其他的罪名：\n{", ".join(alternatives)}\n'
+        "给定一段法律案件的案情描述以及正确的法条和罪名，并给出其他的罪名，分析选择正确罪名排除其他罪名的理由。\n"
+        f"案情描述：\n{fact}\n"
+        f"正确的法条和罪名：\n{all_str}\n"
+        f"其他的罪名：\n{expanded_crimes_str}\n"
     )
 
 
@@ -23,8 +47,8 @@ def parse_args():
     # precedent_database.jsonl 是虚拟路径，需要自行准备；不得包含评测集案件。
     parser.add_argument('--precedent_database_path', default='./data/precedent_database.jsonl')
     parser.add_argument('--output_path', default='./data/precedent_database_with_reasoning.jsonl')
-    parser.add_argument('--historical_cases_path', default=None,
-                        help='Multi-defendant training cases for co-occurrence; defaults to the precedent database.')
+    parser.add_argument('--multiljp_file_path', default='./data/MultiLJP/train.jsonl',
+                        help='MultiLJP training JSONL for historical charge co-occurrence.')
     parser.add_argument('--model_path', default='./model/Qwen2.5-72B-Instruct')
     parser.add_argument('--bge_model_path', default='./model/BAAI_bge-m3')
     parser.add_argument('--tensor_parallel_size', type=int, default=4)
@@ -41,7 +65,8 @@ def main():
         raise ValueError('batch_size must be positive')
     cases = load_cases(args.precedent_database_path)
     for case in cases:
-        if not case_charges(case):
+        _, charges = precedent_judgment(case)
+        if not charges:
             raise ValueError(f'Missing charge labels for case {case["caseID"]}')
 
     from transformers import AutoTokenizer
@@ -55,7 +80,7 @@ def main():
               gpu_memory_utilization=0.8, tensor_parallel_size=args.tensor_parallel_size,
               dtype=torch.bfloat16)
     bge_model = SentenceTransformer(args.bge_model_path)
-    historical_path = args.historical_cases_path or args.precedent_database_path
+    multiljp_file_path = args.multiljp_file_path
     output_path = Path(args.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     # One output record per source case, with its original ID and labels preserved.
@@ -66,11 +91,11 @@ def main():
             batch = cases[start:start + args.batch_size]
             prompts = []
             for case in batch:
-                charges = case_charges(case)
-                expanded = expand_crimes(charges, bge_model, args.top_k_expand, historical_path)
-                alternatives = sorted(set(expanded) - set(charges))
+                _, charges = precedent_judgment(case)
+                expanded = expand_crimes(charges, bge_model, args.top_k_expand, multiljp_file_path)
+                expanded = list(set(expanded))
                 prompts.append(tokenizer.apply_chat_template(
-                    [{'role': 'user', 'content': build_prompt(case, alternatives)}],
+                    [{'role': 'user', 'content': build_prompt(case, expanded)}],
                     tokenize=False, add_generation_prompt=True))
             outputs = llm.generate(prompts, sampling_params=SamplingParams(
                 temperature=0.3, top_p=0.95, top_k=20, min_p=0,
@@ -78,8 +103,8 @@ def main():
             if len(outputs) != len(batch):
                 raise ValueError('Generation count does not match precedent count')
             for case, output in zip(batch, outputs):
-                reasoning = output.outputs[0].text.strip()
-                if not reasoning:
+                reasoning = output.outputs[0].text
+                if not reasoning.strip():
                     raise ValueError(f'Empty reasoning for case {case["caseID"]}')
                 record = dict(case, reasoning_chain=reasoning)
                 target.write(json.dumps(record, ensure_ascii=False) + '\n')
