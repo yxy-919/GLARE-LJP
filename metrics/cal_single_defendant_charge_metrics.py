@@ -6,7 +6,6 @@ from tqdm import tqdm
 #from transformers import AutoTokenizer
 from modelscope import AutoTokenizer
 from vllm import LLM, SamplingParams
-from mycode.utils import loader
 import re
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
