@@ -27,6 +27,15 @@ BEGIN_SEARCH_RESULT = "<|begin_search_result|>"
 END_SEARCH_RESULT = "<|end_search_result|>"
 bge_model = SentenceTransformer("./model/BAAI_bge-m3")
 
+def parse_bool(value):
+    value = value.lower()
+    if value in ('true', '1', 'yes'):
+        return True
+    if value in ('false', '0', 'no'):
+        return False
+    raise argparse.ArgumentTypeError('Expected true/false, yes/no, or 1/0')
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Search RAG for various models.")
 
@@ -80,7 +89,7 @@ def parse_args():
     )
     parser.add_argument(
         '--use_jina',
-        type=bool,
+        type=parse_bool,
         default=False,
         help="Whether to use Jina API for document fetching."
     )

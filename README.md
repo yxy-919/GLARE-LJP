@@ -124,6 +124,12 @@ bash glare/run.sh
    Configure your Serper API key in `glare/serper.py`. Webpage fetching through
    Jina is controlled by `--use_jina`, with credentials supplied through
    `--jina_api_key`.
+   With `--use_jina False` (the default), pages are fetched directly using
+   `requests`: HTML text is extracted with BeautifulSoup, and PDF text with
+   pdfplumber. This mode does not require Jina credentials. Set `--use_jina True`
+   to use Jina instead. Direct fetching may fail on sites requiring JavaScript
+   rendering or blocking automated requests; scanned PDFs require OCR, which is
+   not included in this implementation.
 
 ### Evaluation
 

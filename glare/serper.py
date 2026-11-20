@@ -1,4 +1,7 @@
 import requests
+from bs4 import BeautifulSoup
+from io import BytesIO
+import pdfplumber
 from requests.exceptions import Timeout
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -68,18 +71,47 @@ def extract_relevant_info(search_results):
         useful_info.append(info)
     return useful_info
 
-def extract_text_from_url(url,use_jina=False,jina_api_key=None):
+def extract_text_from_url(url, use_jina=False, jina_api_key=None):
+    """Fetch page text through Jina or directly from HTML/PDF content."""
     try:
         if use_jina:
-            jina_headers = {
-                'Authorization': f'Bearer {jina_api_key}',
-                'X-Return-Format': 'markdown',
-                # 'X-With-Links-Summary': 'true'
-            }
-            response = requests.get(f'https://r.jina.ai/{url}', headers=jina_headers).text
-            # Remove URLs
+            jina_headers = {'X-Return-Format': 'markdown'}
+            if jina_api_key and jina_api_key != 'None':
+                jina_headers['Authorization'] = f'Bearer {jina_api_key}'
+            response = requests.get(
+                f'https://r.jina.ai/{url}', headers=jina_headers, timeout=20
+            )
+            response.raise_for_status()
             pattern = r"\(https?:.*?\)|\[https?:.*?\]"
-            text = re.sub(pattern, "", response).replace('---','-').replace('===','=').replace('   ',' ').replace('   ',' ')
+            text = re.sub(pattern, "", response.text).replace('---', '-').replace('===', '=')
+        else:
+            response = requests.get(
+                url,
+                headers={'User-Agent': 'Mozilla/5.0',
+                         'Accept': 'text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.8'},
+                timeout=20,
+            )
+            response.raise_for_status()
+            content_type = response.headers.get('Content-Type', '').lower()
+            if 'pdf' in content_type or response.content.startswith(b'%PDF-'):
+                pages = []
+                with pdfplumber.open(BytesIO(response.content)) as pdf:
+                    for page in pdf.pages:
+                        pages.append(page.extract_text() or '')
+                        if sum(map(len, pages)) >= 8000:
+                            break
+                text = '\n'.join(pages)
+            else:
+                # requests defaults to Latin-1 for HTML without an explicit charset.
+                if 'charset=' not in content_type:
+                    response.encoding = response.apparent_encoding
+                try:
+                    soup = BeautifulSoup(response.text, 'lxml')
+                except Exception:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                for element in soup(['script', 'style', 'noscript']):
+                    element.decompose()
+                text = soup.get_text(separator=' ', strip=True)
         return text[:8000]
     except requests.exceptions.HTTPError as http_err:
         return f"HTTP error occurred: {http_err}"
