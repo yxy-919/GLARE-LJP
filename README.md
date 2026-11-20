@@ -60,41 +60,60 @@ vllm serve "model_path" --port 19001 --tensor-parallel-size 2 --gpu-memory-utili
 bash glare/run.sh
 ```
 
-### GLARE precedent database
+### GLARE Modules and Preparation
 
-`data/precedent_database.jsonl` is a placeholder path: prepare a JSONL precedent
-corpus from the **training splits** of CAIL2018, CMDL, and collected China Judgments
-Online cases. Exclude evaluation cases and duplicates. Each record needs a unique
-`caseID`, `fact`, and gold judgments. For offline reasoning, normalize cases to the original unified schema:
-`defendants` and `outcomes[].judgment[]` with `standard_accusation` and `article`
-(a list of article-number strings). The original Chinese prompt and per-defendant
-judgment formatting are retained. Historical co-occurrence statistics additionally
-support CAIL2018 `meta.accusation` and MultiLJP `criminals_info.*.accusations`.
-For example (synthetic schema illustration):
+1. **Charge Expansion Module (CEM)**
 
-```json
-{"caseID": "example-1", "fact": "示例案情文本", "defendants": ["张某"], "outcomes": [{"judgment": [{"standard_accusation": "盗窃", "article": ["264"]}]}]}
-```
+   Candidate charges are expanded from two complementary perspectives:
+   **legal structure-based expansion** retrieves semantically similar charges
+   within the same legal chapter and across different chapters using BGE-M3;
+   **history-based expansion** retrieves charges that frequently co-occur in
+   historical cases. The two expansion sets are combined to provide a broader
+   set of candidates for comparative reasoning.
 
-The offline script writes one enriched record per source case, retaining the
-original fields and adding `reasoning_chain`. It processes the entire corpus in
-batches; it does not read test cases or preselected retrieval results.
+   Specify the co-occurrence corpus with `--multiljp_file_path`. You can prepare
+   it from the training splits of multi-defendant, multi-charge datasets such as
+   MultiLJP or CMDL. This argument has no default path. Set `MULTILJP_FILE_PATH`
+   to your local training JSONL file before running the commands above;
+   `glare/run.sh` uses the same environment variable.
 
-`glare/glare.py` builds a SAILER/FAISS index over this enriched corpus and retrieves
-**5 precedents per input case** (`--precedent_top_k 5`; fewer only if the corpus
-contains fewer than 5 cases). Retrieved facts and reasoning paths provide
-`seq['reasoning_chain']`; case IDs need not be consecutive integers. The index is
-rebuilt on startup and is currently kept in memory.
+2. **Precedents Reasoning Demonstration (PRD)**
 
-Charge expansion combines legal-structure neighbors with top-k historical
-co-occurrences. Historical statistics can use multi-defendant, multi-charge
-**training data**, such as MultiLJP or CMDL. `--multiljp_file_path` is required and has no default path.
-Set the `MULTILJP_FILE_PATH` environment variable to your actual training JSONL
-file before running the commands above; `glare/run.sh` uses the same variable. Statistics are
-cached in memory for the duration of the process. Required local models are
-Qwen2.5-72B-Instruct (offline generator), BGE-M3 (charge expansion), SAILER_zh
-(precedent retrieval), and the online model served by vLLM; adjust model paths
-and GPU settings for your environment.
+   - **Prepare the precedent database.** Collect precedents from the training
+     splits of CAIL2018 and CMDL, together with cases collected from China
+     Judgments Online. Remove duplicates and exclude evaluation cases. Store
+     the corpus at `data/precedent_database.jsonl` or specify its location with
+     `--precedent_database_path`.
+
+   - **Generate reasoning paths offline.** Run `glare/offline_reasoning.py` to
+     generate a reasoning path for every precedent. Given the case facts, the
+     correct judgment, and expanded candidate charges, Qwen2.5-72B-Instruct
+     explains why the correct charges apply and why the alternatives should be
+     excluded. The script retains the original records and adds
+     `reasoning_chain`, writing the enriched corpus to
+     `data/precedent_database_with_reasoning.jsonl` by default.
+
+   - **Retrieve precedents online.** `glare/glare.py` uses SAILER and FAISS to
+     retrieve five relevant precedents per input case (`--precedent_top_k 5`).
+     Their facts and reasoning paths serve as demonstrations for distinguishing
+     candidate charges. For repeated experiments, save the FAISS index and its
+     corresponding precedent ordering after construction, then load them on
+     subsequent runs to avoid rebuilding the index. The current implementation
+     builds the index in memory at startup; index persistence needs to be added
+     locally.
+
+3. **Legal Search-Augmented Reasoning (LSAR)**
+
+   During reasoning, the model generates targeted legal queries to resolve
+   ambiguities between candidate charges or clarify statute-specific questions.
+   The system calls the **Serper API** to search the web, fetches relevant page
+   content, and summarizes useful legal knowledge before returning it to the
+   model for continued reasoning. This search-and-reasoning process can repeat
+   as needed, subject to `--max_search_limit` and `--max_turn`.
+
+   Configure your Serper API key in `glare/serper.py`. Webpage fetching through
+   Jina is controlled by `--use_jina`, with credentials supplied through
+   `--jina_api_key`.
 
 ### Evaluation
 
