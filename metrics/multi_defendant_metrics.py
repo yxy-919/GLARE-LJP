@@ -1,3 +1,7 @@
+from evaluation_io import METRICS_DIR, parse_evaluation_args, save_metrics
+
+args = parse_evaluation_args("Evaluate multi-defendant predictions.")
+
 import math
 import torch
 import json
@@ -121,10 +125,10 @@ def calculate_final_score(result):
     penalty_acc = result["case_level_Pen_Acc"]
     return 0.3 * charge_f1 + 0.3 * article_f1 + 0.4 * penalty_acc
 
-with open("./a2i.json", "r", encoding="utf-8") as f:
+with open(METRICS_DIR / "a2i.json", "r", encoding="utf-8") as f:
     a2i = json.load(f)
 
-with open("./c2i.json", "r", encoding="utf-8") as f:
+with open(METRICS_DIR / "c2i.json", "r", encoding="utf-8") as f:
     c2i = json.load(f)
 
 chinese_to_num = {
@@ -167,14 +171,14 @@ def extract_articles(article_text):
     return onehot
 # print(extract_articles("罪犯1: 荣某某: 法条是: 第三百五十九条第一款； 罪名是: 介绍卖淫罪"))
 
-model = SentenceTransformer("./model/BAAI_bge-m3")
+model = SentenceTransformer(args.bge_model_path)
 
 crime_names = list(c2i.keys())
 def encode_all_crimes(bge_model,crime_names,crime_encodings_file):
     embeddings = bge_model.encode(crimes_names)
     np.save(crime_encodings_file, embeddings)
 
-embeddings = np.load('./metrics/crime_encodings.npy')
+embeddings = np.load(METRICS_DIR / 'crime_encodings.npy')
 
 def bge_match(charge,bge_model,embeddings,crime_names):
     new_embedding = bge_model.encode([charge])
@@ -241,7 +245,7 @@ def convert_labels_to_onehot(label_jsonl_path):
     charge_label_tensor = torch.tensor(charge_list)
     article_label_tensor = torch.tensor(article_list)
     return charge_label_tensor, article_label_tensor, num_list2
-charge_label, article_label, num_list2 = convert_labels_to_onehot('./data/CMDL/test.json')
+charge_label, article_label, num_list2 = convert_labels_to_onehot(args.label_file_path)
 
 def convert_predictions_to_onehot(pred_file_path):
     article_tensor, charge_tensor = [], []
@@ -307,5 +311,6 @@ def cal_metrics(pred_file_path):
     print("Precision:",result["case_level_Art_Precision"])
     print("Recall:",result["case_level_Art_Recall"])
     print("F1:",result["case_level_Art_F1"])
+    save_metrics(result, args.output_file)
 
-cal_metrics("./output/rag/32b/generated_result")
+cal_metrics(args.pred_file_path)

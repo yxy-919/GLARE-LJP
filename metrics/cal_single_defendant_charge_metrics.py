@@ -1,3 +1,7 @@
+from evaluation_io import METRICS_DIR, parse_evaluation_args, save_metrics
+
+args = parse_evaluation_args("Evaluate single-defendant charge predictions.")
+
 import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -10,24 +14,24 @@ import re
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 # 加载 BGE 编码模型
-model = SentenceTransformer("./model/BAAI_bge-m3")
+model = SentenceTransformer(args.bge_model_path)
 
 # 读取编码结果
-embeddings = np.load("./metrics/crime_encodings.npy")
-with open("./metrics/c2i.json", "r", encoding="utf-8") as f:
+embeddings = np.load(METRICS_DIR / "crime_encodings.npy")
+with open(METRICS_DIR / "c2i.json", "r", encoding="utf-8") as f:
     crime_dict = json.load(f)
 
 # 提取罪名
 crime_names = list(crime_dict.keys())
 
 case_list = []
-with open('./output/rag/32b/generated_result', encoding="utf-8") as f:
+with open(args.pred_file_path, encoding="utf-8") as f:
     for line in f.readlines():
         case = json.loads(line)
         case_list.append(case)
 
 # 加载映射关系的 JSON 文件
-mapping_file = "./metrics/expanded_charges_mapping.json"  # 替换为你的映射文件路径
+mapping_file = METRICS_DIR / "expanded_charges_mapping.json"
 with open(mapping_file, 'r', encoding='utf-8') as f:
     # 将文件中的每一行加载为 JSON 对象，并合并为一个字典
     mapping_dict = {}
@@ -108,7 +112,7 @@ for case in case_list:
 
 print("preds的长度：",len(charge_list))
 labels = []
-with open('./data/test.json',encoding='utf-8') as f:
+with open(args.label_file_path,encoding='utf-8') as f:
     for line in f.readlines():
         case = json.loads(line)
         case_id = case['caseID']
@@ -159,3 +163,6 @@ print(f"F1 Score: {f1:.4f}")
 #     f.write(f"F1 Score: {f1:.4f}\n")
 
 # print(f"指标已保存至 {output_file}")
+
+
+save_metrics({"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1}, args.output_file)

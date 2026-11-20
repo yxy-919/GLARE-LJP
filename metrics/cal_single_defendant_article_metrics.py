@@ -1,3 +1,7 @@
+from evaluation_io import METRICS_DIR, parse_evaluation_args, save_metrics
+
+args = parse_evaluation_args("Evaluate single-defendant law article predictions.")
+
 import json
 import sys
 import re
@@ -89,7 +93,7 @@ def extract_article_numbers_from_json(file_path):
 # print(extract_article_number("第111条，第112条"))
 # print(extract_article_number("第一百一十一条"))
 
-json_file = './output/rag/32b/generated_result'  # 替换为你的文件路径
+json_file = args.pred_file_path
 
 # 提取法条数字并打印
 article_numbers,case_ids = extract_article_numbers_from_json(json_file)
@@ -102,7 +106,7 @@ all_labels = []
 all_ids = []
 
 
-with open('./data/test.json', 'r',encoding="utf-8") as f:
+with open(args.label_file_path, 'r',encoding="utf-8") as f:
     for idx, line in enumerate(f.readlines()):
         case = json.loads(line)
         case_id = case['caseID']
@@ -140,4 +144,7 @@ print(f"F1 Score: {f1:.4f}")
 #     f.write(f"Recall: {recall:.4f}\n")
 #     f.write(f"F1 Score: {f1:.4f}\n")
 
-print(f"指标已保存至 {output_file}")
+# print(f"指标已保存至 {output_file}")
+
+
+save_metrics({"accuracy": accuracy, "precision": precision, "recall": recall, "f1": f1}, args.output_file)

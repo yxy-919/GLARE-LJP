@@ -151,17 +151,35 @@ identifier (`7b`, `qwq`, `32b`, or `72b`). The script reads
 `output/{method_name}/{method_model}/predict_result` and writes formatted predictions
 to `output/{method_name}/{method_model}/generated_result`. For GLARE, use `--method_name glare --method_model qwq`; its raw predictions
 are saved directly to `output/glare/qwq/predict_result`.
-Configure the evaluation scripts to read the corresponding `generated_result` file.
+Use `--pred_file_path` to select the corresponding `generated_result` file and
+`--label_file_path` to select the test cases. All evaluation scripts print metrics
+to the terminal; optionally pass `--output_file` to save them as JSON. The same
+commands work for any reasoning method or model by changing these paths.
+For charge evaluation, `--bge_model_path` optionally overrides the local BGE model
+path (default: `./model/BAAI_bge-m3`). Label mappings and charge embeddings are
+loaded from the repository's `metrics/` directory.
+
+Set the environment variables below to your actual input and output paths;
+omit `--output_file` if only terminal output is needed.
 
 - For single-defendant dataset:
 ```bash
-python metrics/cal_single_defendant_article_metrics.py
-python metrics/cal_single_defendant_charge_metrics.py
+python metrics/cal_single_defendant_article_metrics.py \
+    --pred_file_path "$PRED_FILE_PATH" \
+    --label_file_path "$TEST_DATASET_PATH" \
+    --output_file "$ARTICLE_METRICS_PATH"
+python metrics/cal_single_defendant_charge_metrics.py \
+    --pred_file_path "$PRED_FILE_PATH" \
+    --label_file_path "$TEST_DATASET_PATH" \
+    --output_file "$CHARGE_METRICS_PATH"
 ```
 
 - For multi-defendant dataset:
 ```bash
-python metrics/multi_defendant_metrics.py
+python metrics/multi_defendant_metrics.py \
+    --pred_file_path "$PRED_FILE_PATH" \
+    --label_file_path "$TEST_DATASET_PATH" \
+    --output_file "$MULTI_METRICS_PATH"
 ```
 
 ## 📄 License
